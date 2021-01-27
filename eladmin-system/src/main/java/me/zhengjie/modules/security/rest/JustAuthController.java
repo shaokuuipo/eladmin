@@ -102,6 +102,8 @@ public class JustAuthController {
             Map<String, Object> authInfo = new HashMap();
             authInfo.put("oauthId", userAuth.getOauthId());
             authInfo.put("toBind", true);
+            String state = AuthStateUtils.createState();
+            authInfo.put("authState", state);
             return ResponseEntity.ok(authInfo);
         }
 
