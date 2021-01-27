@@ -111,3 +111,26 @@ file:
   # 文件大小 /M
   maxSize: 100
   avatarMaxSize: 5
+
+#justauth
+justauth:
+  enabled: true
+  type:
+    GITEE:
+      client-id: 11135157f9799bd0ffe70e3379be6d156a65cccdc0aef1777ec2effffe9f7105
+      client-secret: 79bf179cb5abb25cfee4f3dcf039ffb9c0136be6c5dd155e9818487d9a972d43
+      redirect-uri: http://127.0.0.1:8013/oauth/redirect/gitee
+    WECHAT_OPEN:
+      client-id: 10**********6
+      client-secret: 1f7d08**********5b7**********29e
+      redirect-uri: http://oauth.xkcoding.com/demo/oauth/wechat_open/callback
+    WECHAT_MP:
+      client-id: 10**********6
+      client-secret: 1f7d08**********5b7**********29e
+      redirect-uri: http://oauth.xkcoding.com/demo/oauth/wechat_mp/callback
+  cache:
+    type: redis
+    # 缓存前缀，目前只对redis缓存生效，默认 JUSTAUTH::STATE::
+    #prefix: ''
+    # 超时时长，目前只对redis缓存生效，默认3分钟
+    timeout: 10m

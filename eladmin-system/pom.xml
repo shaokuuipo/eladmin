@@ -19,6 +19,15 @@
     </properties>
 
     <dependencies>
+        <!-- JustAuth-->
+        <dependency>
+            <groupId>com.xkcoding.justauth</groupId>
+            <artifactId>justauth-spring-boot-starter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>okhttp</artifactId>
+        </dependency>
         <!-- 代码生成模块 -->
         <dependency>
             <groupId>me.zhengjie</groupId>
