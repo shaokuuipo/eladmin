@@ -27,7 +27,6 @@ import me.zhyd.oauth.request.AuthRequest;
 import me.zhyd.oauth.utils.AuthStateUtils;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -50,7 +49,6 @@ import java.util.Map;
 public class JustAuthController {
     private final AuthRequestFactory factory;
     private final UserDetailsService userDetailsService;
-    private final AuthenticationManagerBuilder authenticationManagerBuilder;
     private final TokenProvider tokenProvider;
     private final OnlineUserService onlineUserService;
     private final SecurityProperties properties;
@@ -99,7 +97,7 @@ public class JustAuthController {
 
         if (ObjectUtil.isNull(userId)) {
             //用户id为空，还没有绑定系统用户。返回第三方系统id和需要绑定的消息给客户端，让用户选择是自动生成账户，还是绑定已有账户
-            Map<String, Object> authInfo = new HashMap();
+            Map<String, Object> authInfo = new HashMap<>();
             authInfo.put("oauthId", userAuth.getOauthId());
             authInfo.put("toBind", true);
             String state = AuthStateUtils.createState();
