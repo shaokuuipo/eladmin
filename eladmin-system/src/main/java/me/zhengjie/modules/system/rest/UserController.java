@@ -20,30 +20,42 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.RequiredArgsConstructor;
 import me.zhengjie.annotation.Log;
+import me.zhengjie.annotation.rest.AnonymousPostMapping;
 import me.zhengjie.config.RsaProperties;
-import me.zhengjie.modules.system.service.DataService;
-import me.zhengjie.modules.system.domain.User;
 import me.zhengjie.exception.BadRequestException;
+import me.zhengjie.modules.security.config.bean.LoginProperties;
+import me.zhengjie.modules.security.config.bean.SecurityProperties;
+import me.zhengjie.modules.security.security.TokenProvider;
+import me.zhengjie.modules.security.service.OnlineUserService;
+import me.zhengjie.modules.security.service.dto.JwtUserDto;
+import me.zhengjie.modules.system.domain.User;
 import me.zhengjie.modules.system.domain.vo.UserPassVo;
-import me.zhengjie.modules.system.service.DeptService;
-import me.zhengjie.modules.system.service.RoleService;
+import me.zhengjie.modules.system.service.*;
+import me.zhengjie.modules.system.service.dto.RegisterDto;
 import me.zhengjie.modules.system.service.dto.RoleSmallDto;
 import me.zhengjie.modules.system.service.dto.UserDto;
 import me.zhengjie.modules.system.service.dto.UserQueryCriteria;
-import me.zhengjie.modules.system.service.VerifyService;
-import me.zhengjie.utils.*;
-import me.zhengjie.modules.system.service.UserService;
+import me.zhengjie.utils.PageUtil;
+import me.zhengjie.utils.RsaUtils;
+import me.zhengjie.utils.SecurityUtils;
 import me.zhengjie.utils.enums.CodeEnum;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.ObjectUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.*;
@@ -65,6 +77,13 @@ public class UserController {
     private final DeptService deptService;
     private final RoleService roleService;
     private final VerifyService verificationCodeService;
+
+    private final SecurityProperties properties;
+    private final OnlineUserService onlineUserService;
+    private final TokenProvider tokenProvider;
+    private final AuthenticationManagerBuilder authenticationManagerBuilder;
+    @Resource
+    private LoginProperties loginProperties;
 
     @ApiOperation("导出用户数据")
     @GetMapping(value = "/download")
@@ -193,5 +212,32 @@ public class UserController {
         if (currentLevel > optLevel) {
             throw new BadRequestException("角色权限不足");
         }
+    }
+
+    @ApiOperation("注册新用户并登录")
+    @AnonymousPostMapping(value = "/register")
+    public ResponseEntity<Object> register(@RequestBody RegisterDto registerDto, HttpServletRequest request) throws Exception {
+        String password = RsaUtils.decryptByPrivateKey(RsaProperties.privateKey, registerDto.getPassword());
+        registerDto.setPassword(password);
+        this.userService.register(registerDto);
+        UsernamePasswordAuthenticationToken authenticationToken =
+                new UsernamePasswordAuthenticationToken(registerDto.getAccount(), password);
+        Authentication authentication = authenticationManagerBuilder.getObject().authenticate(authenticationToken);
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        // 生成令牌
+        String token = tokenProvider.createToken(authentication);
+        final JwtUserDto jwtUserDto = (JwtUserDto) authentication.getPrincipal();
+        // 保存在线信息
+        onlineUserService.save(jwtUserDto, token, request);
+        // 返回 token 与 用户信息
+        Map<String, Object> authInfo = new HashMap<String, Object>(2) {{
+            put("token", properties.getTokenStartWith() + token);
+            put("user", jwtUserDto);
+        }};
+        if (loginProperties.isSingleLogin()) {
+            //踢掉之前已经登录的token
+            onlineUserService.checkLoginOnUser(registerDto.getAccount(), token);
+        }
+        return ResponseEntity.ok(authInfo);
     }
 }

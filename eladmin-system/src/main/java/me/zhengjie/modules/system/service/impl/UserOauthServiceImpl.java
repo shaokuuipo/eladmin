@@ -1,18 +1,18 @@
 /*
-*  Copyright 2019-2020 Zheng Jie
-*
-*  Licensed under the Apache License, Version 2.0 (the "License");
-*  you may not use this file except in compliance with the License.
-*  You may obtain a copy of the License at
-*
-*  http://www.apache.org/licenses/LICENSE-2.0
-*
-*  Unless required by applicable law or agreed to in writing, software
-*  distributed under the License is distributed on an "AS IS" BASIS,
-*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-*  See the License for the specific language governing permissions and
-*  limitations under the License.
-*/
+ *  Copyright 2019-2020 Zheng Jie
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
 package me.zhengjie.modules.system.service.impl;
 
 import lombok.RequiredArgsConstructor;
@@ -39,11 +39,11 @@ import java.util.List;
 import java.util.Map;
 
 /**
-* @website https://el-admin.vip
-* @description 服务实现
-* @author NickShao
-* @date 2021-01-22
-**/
+ * @author NickShao
+ * @website https://el-admin.vip
+ * @description 服务实现
+ * @date 2021-01-22
+ **/
 @Service
 @RequiredArgsConstructor
 public class UserOauthServiceImpl implements UserOauthService {
@@ -52,21 +52,21 @@ public class UserOauthServiceImpl implements UserOauthService {
     private final UserOauthMapper userOauthMapper;
 
     @Override
-    public Map<String,Object> queryAll(UserOauthQueryCriteria criteria, Pageable pageable){
-        Page<UserOauth> page = userOauthRepository.findAll((root, criteriaQuery, criteriaBuilder) -> QueryHelp.getPredicate(root,criteria,criteriaBuilder),pageable);
+    public Map<String, Object> queryAll(UserOauthQueryCriteria criteria, Pageable pageable) {
+        Page<UserOauth> page = userOauthRepository.findAll((root, criteriaQuery, criteriaBuilder) -> QueryHelp.getPredicate(root, criteria, criteriaBuilder), pageable);
         return PageUtil.toPage(page.map(userOauthMapper::toDto));
     }
 
     @Override
-    public List<UserOauthDto> queryAll(UserOauthQueryCriteria criteria){
-        return userOauthMapper.toDto(userOauthRepository.findAll((root, criteriaQuery, criteriaBuilder) -> QueryHelp.getPredicate(root,criteria,criteriaBuilder)));
+    public List<UserOauthDto> queryAll(UserOauthQueryCriteria criteria) {
+        return userOauthMapper.toDto(userOauthRepository.findAll((root, criteriaQuery, criteriaBuilder) -> QueryHelp.getPredicate(root, criteria, criteriaBuilder)));
     }
 
     @Override
     @Transactional
     public UserOauthDto findById(Long oauthId) {
         UserOauth userOauth = userOauthRepository.findById(oauthId).orElseGet(UserOauth::new);
-        ValidationUtil.isNull(userOauth.getOauthId(),"UserOauth","oauthId",oauthId);
+        ValidationUtil.isNull(userOauth.getOauthId(), "UserOauth", "oauthId", oauthId);
         return userOauthMapper.toDto(userOauth);
     }
 
@@ -80,7 +80,7 @@ public class UserOauthServiceImpl implements UserOauthService {
     @Transactional(rollbackFor = Exception.class)
     public void update(UserOauth resources) {
         UserOauth userOauth = userOauthRepository.findById(resources.getOauthId()).orElseGet(UserOauth::new);
-        ValidationUtil.isNull( userOauth.getOauthId(),"UserOauth","id",resources.getOauthId());
+        ValidationUtil.isNull(userOauth.getOauthId(), "UserOauth", "id", resources.getOauthId());
         userOauth.copy(resources);
         userOauthRepository.save(userOauth);
     }
@@ -96,7 +96,7 @@ public class UserOauthServiceImpl implements UserOauthService {
     public void download(List<UserOauthDto> all, HttpServletResponse response) throws IOException {
         List<Map<String, Object>> list = new ArrayList<>();
         for (UserOauthDto userOauth : all) {
-            Map<String,Object> map = new LinkedHashMap<>();
+            Map<String, Object> map = new LinkedHashMap<>();
             map.put("用户主键", userOauth.getUserId());
             map.put("用户名", userOauth.getUsername());
             map.put("昵称", userOauth.getNickname());
@@ -118,5 +118,11 @@ public class UserOauthServiceImpl implements UserOauthService {
     public UserOauthDto findBySourceAndUuid(String source, String uuid) {
         UserOauth userOauth = this.userOauthRepository.findBySourceAndUuid(source, uuid);
         return userOauthMapper.toDto(userOauth);
+    }
+
+    @Override
+    @Transactional
+    public void bindUser(Long userId, Long authId) {
+        this.userOauthRepository.bindUser(userId, authId);
     }
 }

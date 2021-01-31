@@ -17,19 +17,19 @@ package me.zhengjie.modules.system.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import me.zhengjie.config.FileProperties;
+import me.zhengjie.exception.BadRequestException;
+import me.zhengjie.exception.EntityExistException;
+import me.zhengjie.exception.EntityNotFoundException;
 import me.zhengjie.modules.security.service.OnlineUserService;
 import me.zhengjie.modules.security.service.UserCacheClean;
 import me.zhengjie.modules.system.domain.User;
-import me.zhengjie.exception.EntityExistException;
-import me.zhengjie.exception.EntityNotFoundException;
 import me.zhengjie.modules.system.repository.UserRepository;
+import me.zhengjie.modules.system.service.UserOauthService;
 import me.zhengjie.modules.system.service.UserService;
-import me.zhengjie.modules.system.service.dto.JobSmallDto;
-import me.zhengjie.modules.system.service.dto.RoleSmallDto;
-import me.zhengjie.modules.system.service.dto.UserDto;
-import me.zhengjie.modules.system.service.dto.UserQueryCriteria;
+import me.zhengjie.modules.system.service.dto.*;
 import me.zhengjie.modules.system.service.mapstruct.UserMapper;
 import me.zhengjie.utils.*;
+import me.zhyd.oauth.cache.AuthStateCache;
 import org.springframework.cache.annotation.CacheConfig;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
@@ -37,6 +37,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.constraints.NotBlank;
 import java.io.File;
@@ -59,6 +60,8 @@ public class UserServiceImpl implements UserService {
     private final RedisUtils redisUtils;
     private final UserCacheClean userCacheClean;
     private final OnlineUserService onlineUserService;
+    private final AuthStateCache authStateCache;
+    private final UserOauthService userOauthService;
 
     @Override
     public Object queryAll(UserQueryCriteria criteria, Pageable pageable) {
@@ -244,5 +247,33 @@ public class UserServiceImpl implements UserService {
      */
     private void flushCache(String username) {
         userCacheClean.cleanUserCache(username);
+    }
+
+    @Override
+    @Transactional
+    public void register(RegisterDto registerDto) throws Exception {
+        boolean stateCheckSuccess = authStateCache.containsKey(registerDto.getAuthState());
+        if (!stateCheckSuccess) {
+            throw new BadRequestException("注册账号失败，本次访问不安全");
+        }
+        UserOauthDto userAuthDto  = userOauthService.findById(registerDto.getAuthId());
+        // 获取昵称，邮箱，电话。三个必填项
+        User user = new User();
+        user.setUsername(registerDto.getAccount());
+        user.setPassword(registerDto.getPassword());
+        String nickName = userAuthDto.getNickname();
+        if(StringUtils.isEmpty(nickName)) {
+            nickName = registerDto.getAccount();
+        }
+        user.setNickName(nickName);
+        String email = userAuthDto.getEmail();
+        if(StringUtils.isEmpty(email)) {
+            email = registerDto.getAccount() + "@email.vu";
+        }
+        user.setEmail(email);
+        user.setPhone(registerDto.getAccount());
+        user.setEnabled(true);
+        user.setIsAdmin(false);
+        this.create(user);
     }
 }

@@ -30,13 +30,15 @@ import me.zhengjie.modules.security.config.bean.LoginCodeEnum;
 import me.zhengjie.modules.security.config.bean.LoginProperties;
 import me.zhengjie.modules.security.config.bean.SecurityProperties;
 import me.zhengjie.modules.security.security.TokenProvider;
+import me.zhengjie.modules.security.service.OnlineUserService;
 import me.zhengjie.modules.security.service.dto.AuthUserDto;
 import me.zhengjie.modules.security.service.dto.JwtUserDto;
-import me.zhengjie.modules.security.service.OnlineUserService;
-import me.zhengjie.utils.RsaUtils;
+import me.zhengjie.modules.system.service.UserOauthService;
 import me.zhengjie.utils.RedisUtils;
+import me.zhengjie.utils.RsaUtils;
 import me.zhengjie.utils.SecurityUtils;
 import me.zhengjie.utils.StringUtils;
+import me.zhyd.oauth.cache.AuthStateCache;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -44,7 +46,11 @@ import org.springframework.security.config.annotation.authentication.builders.Au
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.util.HashMap;
@@ -67,12 +73,22 @@ public class AuthorizationController {
     private final OnlineUserService onlineUserService;
     private final TokenProvider tokenProvider;
     private final AuthenticationManagerBuilder authenticationManagerBuilder;
+    private final AuthStateCache authStateCache;
+    private final UserOauthService userOauthService;
     @Resource
     private LoginProperties loginProperties;
 
     @ApiOperation("登录授权")
     @AnonymousPostMapping(value = "/login")
     public ResponseEntity<Object> login(@Validated @RequestBody AuthUserDto authUser, HttpServletRequest request) throws Exception {
+        boolean toBind = authUser.getAuthId() != null && StringUtils.isNotEmpty(authUser.getAuthState());
+        if (toBind) {
+            //绑定第三方登录信息
+            boolean stateCheckSuccess = authStateCache.containsKey(authUser.getAuthState());
+            if (!stateCheckSuccess) {
+                throw new BadRequestException("绑定第三方账号失败，本次访问不安全");
+            }
+        }
         // 密码解密
         String password = RsaUtils.decryptByPrivateKey(RsaProperties.privateKey, authUser.getPassword());
         // 查询验证码
@@ -102,6 +118,9 @@ public class AuthorizationController {
         if (loginProperties.isSingleLogin()) {
             //踢掉之前已经登录的token
             onlineUserService.checkLoginOnUser(authUser.getUsername(), token);
+        }
+        if(toBind) {
+            userOauthService.bindUser(jwtUserDto.getUser().getId(), authUser.getAuthId());
         }
         return ResponseEntity.ok(authInfo);
     }

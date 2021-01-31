@@ -16,6 +16,7 @@
 package me.zhengjie.modules.system.service;
 
 import me.zhengjie.modules.system.domain.User;
+import me.zhengjie.modules.system.service.dto.RegisterDto;
 import me.zhengjie.modules.system.service.dto.UserDto;
 import me.zhengjie.modules.system.service.dto.UserQueryCriteria;
 import org.springframework.data.domain.Pageable;
@@ -113,4 +114,10 @@ public interface UserService {
      * @param resources /
      */
     void updateCenter(User resources);
+
+    /**
+     * 第三方登录新用户注册
+     * @param registerDto
+     */
+    void register(RegisterDto registerDto) throws Exception;
 }

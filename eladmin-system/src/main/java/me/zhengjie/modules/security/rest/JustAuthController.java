@@ -20,6 +20,7 @@ import me.zhengjie.modules.system.service.UserOauthService;
 import me.zhengjie.modules.system.service.UserService;
 import me.zhengjie.modules.system.service.dto.UserDto;
 import me.zhengjie.modules.system.service.dto.UserOauthDto;
+import me.zhyd.oauth.cache.AuthStateCache;
 import me.zhyd.oauth.model.AuthCallback;
 import me.zhyd.oauth.model.AuthResponse;
 import me.zhyd.oauth.model.AuthUser;
@@ -47,6 +48,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 @Api(tags = "系统：集成JustAuth第三方登录工具")
 public class JustAuthController {
+    private final AuthStateCache authStateCache;
     private final AuthRequestFactory factory;
     private final UserDetailsService userDetailsService;
     private final TokenProvider tokenProvider;
@@ -98,9 +100,12 @@ public class JustAuthController {
         if (ObjectUtil.isNull(userId)) {
             //用户id为空，还没有绑定系统用户。返回第三方系统id和需要绑定的消息给客户端，让用户选择是自动生成账户，还是绑定已有账户
             Map<String, Object> authInfo = new HashMap<>();
-            authInfo.put("oauthId", userAuth.getOauthId());
+            authInfo.put("authId", userAuth.getOauthId());
             authInfo.put("toBind", true);
+            //生成state
             String state = AuthStateUtils.createState();
+            //缓存state
+            authStateCache.cache(state, state);
             authInfo.put("authState", state);
             return ResponseEntity.ok(authInfo);
         }

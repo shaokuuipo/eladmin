@@ -36,4 +36,13 @@ public class AuthUserDto {
     private String code;
 
     private String uuid = "";
+
+    // 用于登陆时绑定第三方用户信息id，默认值 -1
+    private Long authId;
+
+    // 用于登陆绑定第三方用户信息时验证信息，防止攻击，默认值：none
+    private String authState;
+
+    // 第三方登录平台的标识；
+    private String authSource;
 }

@@ -88,4 +88,11 @@ public interface UserOauthService {
     * @throws IOException /
     */
     void download(List<UserOauthDto> all, HttpServletResponse response) throws IOException;
+
+    /**
+     * 第三方登录信息绑定用户
+     * @param userId
+     * @param authId
+     */
+    void bindUser(Long userId, Long authId);
 }
