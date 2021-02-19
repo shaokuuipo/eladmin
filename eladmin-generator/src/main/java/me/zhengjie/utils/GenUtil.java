@@ -79,6 +79,17 @@ public class GenUtil {
         return templateNames;
     }
 
+    /**
+     * 获取sql代码模板名称
+     *
+     * @return List
+     */
+    private static List<String> getSqlTemplateNames() {
+        List<String> templateNames = new ArrayList<>();
+        templateNames.add("menu");
+        return templateNames;
+    }
+
     public static List<Map<String, Object>> preview(List<ColumnInfo> columns, GenConfig genConfig) {
         Map<String, Object> genMap = getGenMap(columns, genConfig);
         List<Map<String, Object>> genList = new ArrayList<>();
@@ -102,6 +113,31 @@ public class GenUtil {
             map.put("name", templateName);
             genList.add(map);
         }
+
+        // 获取sql模板
+        //生成路由地址
+        templates = getSqlTemplateNames();
+        for (String templateName : templates) {
+            Map<String, Object> map = new HashMap<>(1);
+            Template template = engine.getTemplate("generator/sql/" + templateName + ".ftl");
+            String filePath = getSqlFilePath(templateName, genConfig.getPath(), genMap.get("changeClassName").toString());
+            String indexPath = filePath.split("\\\\views\\\\")[1];
+            String[] pathSplit = indexPath.split("\\\\");
+            String resultPath = "";
+            for (int i = 0; i < pathSplit.length; i++) {
+                if (i == pathSplit.length - 1) {
+                    resultPath += "index";
+                    break;
+                }
+                resultPath += pathSplit[i] + "/";
+            }
+            genMap.put("routePath", resultPath);
+            map.put(templateName, template.render(genMap));
+            map.put("content", template.render(genMap));
+            map.put("name", templateName);
+            genList.add(map);
+        }
+
         return genList;
     }
 
@@ -179,6 +215,34 @@ public class GenUtil {
             if (!genConfig.getCover() && FileUtil.exist(file)) {
                 continue;
             }
+            // 生成代码
+            genFile(file, template, genMap);
+        }
+        //生成sql
+        templates = getSqlTemplateNames();
+        for (String templateName : templates) {
+            Template template = engine.getTemplate("generator/sql/" + templateName + ".ftl");
+            String filePath = getSqlFilePath(templateName, genConfig.getPath(), genMap.get("changeClassName").toString());
+
+            assert filePath != null;
+            File file = new File(filePath);
+
+            // 如果非覆盖生成
+            if (!genConfig.getCover() && FileUtil.exist(file)) {
+                continue;
+            }
+            //生成路由地址
+            String indexPath = filePath.split("\\\\views\\\\")[1];
+            String[] pathSplit = indexPath.split("\\\\");
+            String resultPath = "";
+            for (int i = 0; i < pathSplit.length; i++) {
+                if (i == pathSplit.length - 1) {
+                    resultPath += "index";
+                    break;
+                }
+                resultPath += pathSplit[i] + "/";
+            }
+            genMap.put("routePath", resultPath);
             // 生成代码
             genFile(file, template, genMap);
         }
@@ -400,6 +464,16 @@ public class GenUtil {
             return path + File.separator + "index.vue";
         }
 
+        return null;
+    }
+
+    /**
+     * 定义sql文件路径以及名称
+     */
+    private static String getSqlFilePath(String templateName, String path, String apiName) {
+        if ("menu".equals(templateName)) {
+            return path + File.separator + apiName + ".sql";
+        }
         return null;
     }
 
