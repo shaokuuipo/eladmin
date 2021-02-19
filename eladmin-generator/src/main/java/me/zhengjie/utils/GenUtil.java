@@ -131,7 +131,7 @@ public class GenUtil {
                 }
                 resultPath += pathSplit[i] + "/";
             }
-            genMap.put("routePath", resultPath);
+            genMap.put("componentPath", resultPath);
             map.put(templateName, template.render(genMap));
             map.put("content", template.render(genMap));
             map.put("name", templateName);
@@ -242,7 +242,7 @@ public class GenUtil {
                 }
                 resultPath += pathSplit[i] + "/";
             }
-            genMap.put("routePath", resultPath);
+            genMap.put("componentPath", resultPath);
             // 生成代码
             genFile(file, template, genMap);
         }
